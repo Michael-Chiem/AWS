@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Product</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+
 <div class="container">
   <div class="row">
     <div class="col">
@@ -9,11 +19,19 @@
     <div class="col-md-6">
       <h3>Create a New Product:</h3>
 
-      <form class="form new-project-form">
+      <!-- Form for creating a new product -->
+      <form class="form new-project-form" enctype="multipart/form-data"> <!-- Note the addition of enctype attribute -->
         <div class="form-group row">
           <label for="project-name" class="col-sm-3 col-form-label">Name:</label>
           <div class="col-sm-9">
             <input class="form-control" type="text" id="project-name" name="project-name" />
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="project-file" class="col-sm-3 col-form-label">File:</label>
+          <div class="col-sm-9">
+            <input type="file" id="project-file" name="project-file" /> <!-- File input field -->
           </div>
         </div>
 
@@ -23,8 +41,10 @@
           </div>
         </div>
       </form>
+
     </div>
 
+    <!-- Display current products -->
     {{#if products.length}}
     <div class="col-md-6 project-list">
       <h3>Current Products:</h3>
@@ -51,14 +71,17 @@ const newFormHandler = async (event) => {
   event.preventDefault();
 
   const name = document.querySelector('#project-name').value.trim();
+  const fileInput = document.querySelector('#project-file');
+  const file = fileInput.files[0];
 
-  if (name) {
+  if (name && file) {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('file', file);
+
     const response = await fetch(`/api/products`, {
       method: 'POST',
-      body: JSON.stringify({ name }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body: formData,
     });
 
     if (response.ok) {
@@ -98,18 +121,15 @@ const delButtonHandler = async (event) => {
   }
 };
 
-
-
 document
   .querySelector('.new-project-form')
   .addEventListener('submit', newFormHandler);
 
-/*document
-  .querySelector('.project-list')
-  .addEventListener('click', delButtonHandler);*/
-
-  const projectList = document.querySelector('.project-list');
-  if (projectList) {
-    projectList.addEventListener('click', delButtonHandler);
-  }
+const projectList = document.querySelector('.project-list');
+if (projectList) {
+  projectList.addEventListener('click', delButtonHandler);
+}
 </script>
+
+</body>
+</html>

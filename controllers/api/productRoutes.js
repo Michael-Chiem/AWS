@@ -1,13 +1,13 @@
 const router = require('express').Router();
 const { Product } = require('../../models');
 const withAuth = require('../../utils/auth');
-const { Op } = require("sequelize")
+const { Op } = require("sequelize");
+const path = require('path'); // Import path module for file path manipulation
 
-
+// Route to get all products
 router.get('/', async (req, res) => {
   try {
-    const productData = await Product.findAll({
-    });
+    const productData = await Product.findAll();
     res.json(productData);
   } catch (err) {
     console.log(err);
@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-
+// Route to get a specific product by ID
 router.get('/:id', async (req, res) => {
   try {
     const productId = req.params.id;
@@ -36,64 +36,91 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Route to create a new product (including file upload)
 router.post('/', withAuth, async (req, res) => {
-  console.log(req.body);
   try {
+    const { name } = req.body;
+    const file = req.files.file;
+
+    // Define the upload directory path
+    const uploadDir = path.join(__dirname, '../../upload'); // Assuming 'upload' folder is in the root directory
+
+    // Save file to disk in the 'upload' folder
+    const filePath = path.join(uploadDir, file.name);
+    file.mv(filePath);
+
+    // Create product record in the database
     const newProduct = await Product.create({
-      ...req.body,
-      user_id: req.session.user_id,
+      name,
+      // Add other product properties here
+      // For example:
+      // location: req.body.location,
+      // startTime: req.body.startTime,
+      // stopTime: req.body.stopTime,
+      // user_id: req.session.user_id,
+      // file: filePath, // Save file path in database
     });
+
     res.status(200).json(newProduct);
   } catch (err) {
+    console.error(err);
     res.status(400).json(err);
   }
 });
 
+// Route to update a product by ID
 router.put('/:id', withAuth, async (req, res) => {
-  console.log(req.body);
   try {
-    const newProduct = await Product.update(req.body, {
-      where: { id: req.params.id }
-    },
-    );
-    res.status(200).json(newProduct);
+    const { id } = req.params;
+    const updatedProduct = await Product.update(req.body, {
+      where: { id }
+    });
+
+    res.status(200).json(updatedProduct);
   } catch (err) {
+    console.error(err);
     res.status(400).json(err);
   }
 });
 
+// Route to delete a product by ID
 router.delete('/:id', withAuth, async (req, res) => {
   try {
-    const productData = await Product.destroy({
-      where: {
-        id: req.params.id,
-        // user_id: req.session.user_id,
-      },
+    const { id } = req.params;
+    const deletedProductCount = await Product.destroy({
+      where: { id }
     });
-    if (!productData) {
+
+    if (deletedProductCount === 0) {
       res.status(404).json({ message: 'No Product found with this id!' });
       return;
     }
-    res.status(200).json(productData);
+
+    res.status(200).json({ message: 'Product deleted successfully' });
   } catch (err) {
+    console.error(err);
     res.status(500).json(err);
   }
 });
 
-router.get('/?search', withAuth, async (req,res) => {
-  console.log(req.query.search)
+// Route to search for products by name
+router.get('/search', withAuth, async (req, res) => {
   try {
-   const productData = await Product.findAll({
-    where: {
-      name: {
-        [Op.substring]: req.query.search
+    const { search } = req.query;
+
+    const productData = await Product.findAll({
+      where: {
+        name: {
+          [Op.substring]: search
+        }
       }
-    }
-   })
-   res.status(200).send(productData)
+    });
+
+    res.status(200).send(productData);
   } catch (err) {
+    console.error(err);
     res.status(500).json(err);
   }
-})
+});
 
 module.exports = router;
