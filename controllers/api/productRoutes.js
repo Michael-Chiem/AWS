@@ -1,0 +1,99 @@
+const router = require('express').Router();
+const { Product } = require('../../models');
+const withAuth = require('../../utils/auth');
+const { Op } = require("sequelize")
+
+
+router.get('/', async (req, res) => {
+  try {
+    const productData = await Product.findAll({
+    });
+    res.json(productData);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
+});
+
+
+router.get('/:id', async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const product = await Product.findByPk(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const productDetails = {
+      ...product.get({ plain: true })
+    };
+
+    res.json(productDetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching product details' });
+  }
+});
+
+router.post('/', withAuth, async (req, res) => {
+  console.log(req.body);
+  try {
+    const newProduct = await Product.create({
+      ...req.body,
+      user_id: req.session.user_id,
+    });
+    res.status(200).json(newProduct);
+  } catch (err) {
+    res.status(400).json(err);
+  }
+});
+
+router.put('/:id', withAuth, async (req, res) => {
+  console.log(req.body);
+  try {
+    const newProduct = await Product.update(req.body, {
+      where: { id: req.params.id }
+    },
+    );
+    res.status(200).json(newProduct);
+  } catch (err) {
+    res.status(400).json(err);
+  }
+});
+
+router.delete('/:id', withAuth, async (req, res) => {
+  try {
+    const productData = await Product.destroy({
+      where: {
+        id: req.params.id,
+        // user_id: req.session.user_id,
+      },
+    });
+    if (!productData) {
+      res.status(404).json({ message: 'No Product found with this id!' });
+      return;
+    }
+    res.status(200).json(productData);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+router.get('/?search', withAuth, async (req,res) => {
+  console.log(req.query.search)
+  try {
+   const productData = await Product.findAll({
+    where: {
+      name: {
+        [Op.substring]: req.query.search
+      }
+    }
+   })
+   res.status(200).send(productData)
+  } catch (err) {
+    res.status(500).json(err);
+  }
+})
+
+module.exports = router;
